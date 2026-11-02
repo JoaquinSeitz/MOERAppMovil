@@ -17,7 +17,7 @@ namespace TrabajoPracticoProgramacionMovilN6.Services
             try
             {
                 var loginData = new { Email = email, Password = password };
-                var response = await _httpClient.PostAsJsonAsync("/api/Usuarios/login", loginData);
+                var response = await _httpClient.PostAsJsonAsync("api/Usuarios/login", loginData);
 
                 if (response.IsSuccessStatusCode)
                 {

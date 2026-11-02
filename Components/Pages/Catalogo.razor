@@ -28,9 +28,7 @@
             {
                 <MudItem xs="6" sm="4" md="3">
                     <MudCard Elevation="4" Style="border-radius: 8px; height: 100%; display: flex; flex-direction: column;">
-                        
-                        <MudCardMedia Image="@(string.IsNullOrEmpty(prod.Imagen) ? "/img/no-image.png" : $"https://localhost:7133{prod.Imagen}")" Height="140" Style="object-fit: contain; padding: 10px;" />
-
+                        <MudCardMedia Image="@(string.IsNullOrEmpty(prod.Imagen) ? "/img/no-image.png" : $"{Http.BaseAddress?.ToString().TrimEnd('/')}{prod.Imagen}")" Height="140" Style="object-fit: contain; padding: 10px;" />
                         <MudCardContent Class="flex-grow-1">
                             <MudText Typo="Typo.subtitle1" Class="fw-bold" Color="Color.Primary">@prod.Nombre</MudText>
                             <MudText Typo="Typo.body2" Style="color: #78909C;">@prod.CategoriaNombre</MudText>
@@ -83,7 +81,7 @@
     {
         try
         {
-            productos = await Http.GetFromJsonAsync<List<ProductoModel>>("https://localhost:7133/api/productos");
+            productos = await Http.GetFromJsonAsync<List<ProductoModel>>("api/productos");
         }
         catch (Exception)
         {

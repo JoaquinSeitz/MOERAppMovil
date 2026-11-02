@@ -20,23 +20,18 @@ namespace TrabajoPracticoProgramacionMovilN6
             // Inyección obligatoria de MudBlazor
             builder.Services.AddMudServices();
 
-            // --- CONFIGURACIÓN DEL HTTP CLIENT (CON BYPASS SSL E INTERCEPTOR) ---
-            string urlApi = "https://localhost:7133";
-#if ANDROID
-            // Android requiere esta IP especial para salir al localhost de tu PC
-            urlApi = "https://10.0.2.2:7133";
-#endif
+            // --- CONFIGURACIÓN DEL HTTP CLIENT PARA PRODUCCIÓN ---
+            // Asignamos directamente la URL de MonsterASP para todas las plataformas
+            string urlApi = "https://tp5-joaco-alex.runasp.net/";
 
             // 1. Registramos el interceptor global de errores
             builder.Services.AddScoped<Services.GlobalHttpInterceptor>();
 
-            // 2. Configuramos el HttpClient para que use el interceptor y el bypass SSL
+            // 2. Configuramos el HttpClient para que use el interceptor
             builder.Services.AddScoped(sp =>
             {
-                var handler = new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
-                };
+                // Al tener un SSL real, quitamos el bypass (ServerCertificateCustomValidationCallback)
+                var handler = new HttpClientHandler();
 
                 // Enganchamos el interceptor al handler base
                 var interceptor = sp.GetRequiredService<Services.GlobalHttpInterceptor>();
@@ -53,10 +48,8 @@ namespace TrabajoPracticoProgramacionMovilN6
 
             // Inyectar nuestros servicios personalizados
             builder.Services.AddScoped<Services.AuthService>();
-            // Lo registramos como Scoped (o Singleton) para que mantenga su estado mientras la app esté abierta
             builder.Services.AddScoped<Services.CarritoService>();
             builder.Services.AddScoped<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider, Services.CustomAuthStateProvider>();
-
 
             return builder.Build();
         }

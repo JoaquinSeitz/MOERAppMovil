@@ -128,7 +128,7 @@
             };
 
             // 3. Enviamos la petición al backend
-            var response = await Http.PostAsJsonAsync("https://localhost:7133/api/SalidaProductos", request);
+            var response = await Http.PostAsJsonAsync("api/SalidaProductos", request);
 
             if (response.IsSuccessStatusCode)
             {
