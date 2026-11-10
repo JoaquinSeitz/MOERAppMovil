@@ -1,30 +1,16 @@
 ﻿<MudNavMenu>
     <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Inicio</MudNavLink>
-    
-    @* --- MÓDULO CLIENTE (ALEX) --- *@
-    <MudNavLink Href="/catalogo" Icon="@Icons.Material.Filled.Storefront">Catálogo</MudNavLink>
-    
-    <AuthorizeView Roles="Cliente,Admin">
+    <MudNavLink Href="/tratamientos" Icon="@Icons.Material.Filled.Spa">Tratamientos Estéticos</MudNavLink>
+    <MudNavLink Href="/productos" Icon="@Icons.Material.Filled.Storefront">Tienda</MudNavLink>
+
+    <AuthorizeView Roles="Cliente">
         <Authorized>
+            <MudNavLink Href="/mis-turnos" Icon="@Icons.Material.Filled.Event">Mis Turnos</MudNavLink>
             <MudNavLink Href="/carrito" Icon="@Icons.Material.Filled.ShoppingCart">Mi Carrito</MudNavLink>
         </Authorized>
     </AuthorizeView>
 
-    @* --- MÓDULO ADMINISTRADOR (JOAQUÍN) --- *@
-    <AuthorizeView Roles="Admin">
-        <Authorized>
-            <MudNavGroup Title="Administración" Icon="@Icons.Material.Filled.AdminPanelSettings" Expanded="true">
-                <MudNavLink Href="/ingresos" Icon="@Icons.Material.Filled.Inventory">Ingreso de Mercadería</MudNavLink>
-                <MudNavLink Href="/reportes" Icon="@Icons.Material.Filled.PictureAsPdf">Reportes PDF</MudNavLink>
-            </MudNavGroup>
-        </Authorized>
-    </AuthorizeView>
-
-    @* --- ACCESOS (LOGIN / LOGOUT) --- *@
     <AuthorizeView>
-        <Authorized>
-            <MudNavLink Href="/logout" Icon="@Icons.Material.Filled.Logout" Color="Color.Error">Cerrar Sesión</MudNavLink>
-        </Authorized>
         <NotAuthorized>
             <MudNavLink Href="/login" Icon="@Icons.Material.Filled.Login">Iniciar Sesión</MudNavLink>
         </NotAuthorized>

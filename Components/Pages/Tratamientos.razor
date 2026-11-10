@@ -1,0 +1,75 @@
+﻿@page "/tratamientos"
+@inject CatalogoService CatalogoService
+
+<PageTitle>Tratamientos - MOER Estética</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8 mb-12">
+    <MudText Typo="Typo.h3" Align="Align.Center" Color="Color.Primary" Class="mb-8" Style="font-family: 'Georgia', serif;">Nuestros Tratamientos</MudText>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-center my-16">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+        </div>
+    }
+    else if (!servicios.Any())
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-4" Style="border-radius: 10px;">
+            El catálogo de tratamientos se está actualizando. Vuelve a consultar pronto.
+        </MudAlert>
+    }
+    else
+    {
+        @foreach (var categoria in serviciosAgrupados)
+        {
+            <MudPaper Elevation="1" Class="pa-0 mb-8" Style="border-radius: 15px; overflow: hidden; background-color: var(--mud-palette-background);">
+
+                <!-- Encabezado de la Categoría -->
+                <div style="background-color: var(--mud-palette-tertiary); padding: 15px 20px;">
+                    <MudText Typo="Typo.h6" Style="color: var(--mud-palette-text-primary); font-weight: bold; font-family: 'Georgia', serif; letter-spacing: 1px;">
+                        @categoria.Key.ToUpper()
+                    </MudText>
+                </div>
+
+                <!-- Lista de Tratamientos -->
+                <MudSimpleTable Style="background-color: transparent;" Elevation="0">
+                    <tbody>
+                        @foreach (var servicio in categoria.Value)
+                        {
+                            <tr style="border-bottom: 1px solid #E0D5C1;">
+                                <td style="width: 30%; font-weight: 600; color: var(--mud-palette-text-primary); padding: 20px;">
+                                    @servicio.Nombre
+                                </td>
+                                <td style="width: 50%; color: var(--mud-palette-text-primary); padding: 20px;">
+                                    @servicio.Descripcion
+                                </td>
+                                <td style="width: 20%; text-align: right; font-weight: bold; color: var(--mud-palette-primary); padding: 20px; font-size: 1.1em;">
+                                    $@servicio.Precio.ToString("N2")
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        }
+    }
+</MudContainer>
+
+@code {
+    private bool isLoading = true;
+    private List<ServicioResponseDTO> servicios = new();
+    private Dictionary<string, List<ServicioResponseDTO>> serviciosAgrupados = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        servicios = await CatalogoService.GetServiciosAsync();
+
+        // Agrupamos por el nombre de la categoría para crear los bloques visuales.
+        // Si el backend aún no devuelve el NombreCategoria, los agrupará en "Tratamientos Generales".
+        serviciosAgrupados = servicios
+            .GroupBy(s => string.IsNullOrWhiteSpace(s.NombreCategoria) ? "Tratamientos Generales" : s.NombreCategoria)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        isLoading = false;
+    }
+}

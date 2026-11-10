@@ -1,6 +1,6 @@
 ﻿using System.Net.Http.Json;
 
-namespace TrabajoPracticoProgramacionMovilN6.Services
+namespace MOERAppMovil.Services
 {
     public class AuthService
     {
@@ -11,12 +11,11 @@ namespace TrabajoPracticoProgramacionMovilN6.Services
             _httpClient = httpClient;
         }
 
-        // Ahora devuelve una tupla: (bool EsExitoso, string Mensaje)
         public async Task<(bool Exito, string Mensaje)> LoginAsync(string email, string password)
         {
             try
             {
-                var loginData = new { Email = email, Password = password };
+                var loginData = new { Email = email, Contrasenia = password };
                 var response = await _httpClient.PostAsJsonAsync("api/Usuarios/login", loginData);
 
                 if (response.IsSuccessStatusCode)
@@ -26,10 +25,20 @@ namespace TrabajoPracticoProgramacionMovilN6.Services
                     if (result != null && !string.IsNullOrEmpty(result.Token))
                     {
                         await SecureStorage.Default.SetAsync("jwt_token", result.Token);
-                        await SecureStorage.Default.SetAsync("user_name", result.Nombre);
-                        await SecureStorage.Default.SetAsync("user_role", result.Rol);
-                        await SecureStorage.Default.SetAsync("user_id", result.UsuarioId.ToString());
-                        await SecureStorage.Default.SetAsync("user_email", result.Email);
+
+                        // Validamos estrictamente que no haya strings vacíos ("") porque Windows los rechaza
+                        string nombreSeguro = string.IsNullOrWhiteSpace(result.Nombre) ? "Usuario" : result.Nombre;
+                        await SecureStorage.Default.SetAsync("user_name", nombreSeguro);
+
+                        string rolSeguro = string.IsNullOrWhiteSpace(result.Rol) ? "Cliente" : result.Rol;
+                        await SecureStorage.Default.SetAsync("user_role", rolSeguro);
+
+                        // Al convertirse a string, un número siempre tiene longitud (ej. "0" o "5"), por lo que es seguro
+                        await SecureStorage.Default.SetAsync("user_id", result.IdCliente.ToString());
+
+                        // Usamos la variable 'email' del parámetro del método si el backend lo devuelve vacío
+                        string emailSeguro = string.IsNullOrWhiteSpace(result.Email) ? email : result.Email;
+                        await SecureStorage.Default.SetAsync("user_email", emailSeguro);
 
                         _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", result.Token);
 
@@ -38,9 +47,8 @@ namespace TrabajoPracticoProgramacionMovilN6.Services
                 }
                 else
                 {
-                    // Si hay error (400 o 401), leemos el mensaje específico que manda tu API
                     var errorResult = await response.Content.ReadFromJsonAsync<ErrorResponse>();
-                    return (false, errorResult?.Mensaje ?? "Error desconocido en el servidor.");
+                    return (false, errorResult?.Mensaje ?? "Error en las credenciales.");
                 }
             }
             catch (Exception ex)
@@ -65,13 +73,12 @@ namespace TrabajoPracticoProgramacionMovilN6.Services
     public class LoginResponse
     {
         public string Token { get; set; } = string.Empty;
-        public int UsuarioId { get; set; }
+        public int IdCliente { get; set; } // Adaptado al backend
         public string Nombre { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Rol { get; set; } = string.Empty;
     }
 
-    // Clase para capturar los mensajes de error del backend
     public class ErrorResponse
     {
         public string Mensaje { get; set; } = string.Empty;

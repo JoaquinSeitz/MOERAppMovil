@@ -1,4 +1,4 @@
-﻿namespace TrabajoPracticoProgramacionMovilN6
+﻿namespace MOERAppMovil
 {
     public partial class MainPage : ContentPage
     {

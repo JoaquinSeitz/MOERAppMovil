@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
-namespace TrabajoPracticoProgramacionMovilN6.Services
+namespace MOERAppMovil.Services
 {
     public class GlobalHttpInterceptor : DelegatingHandler
     {

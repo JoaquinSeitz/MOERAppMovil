@@ -1,28 +1,31 @@
 ﻿@inherits LayoutComponentBase
 @implements IDisposable
-@using TrabajoPracticoProgramacionMovilN6.Services
+@using MOERAppMovil.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Navigation
 @inject AuthService AuthService
 @inject AuthenticationStateProvider AuthStateProvider
+@namespace MOERAppMovil.Layout
 
-<MudThemeProvider Theme="@_temaTP6" />
+<MudThemeProvider Theme="@_temaMoer" />
 <MudDialogProvider />
 <MudSnackbarProvider PositionClass="Defaults.Classes.Position.BottomRight" PreventDuplicates="true" ShowCloseIcon="true" VisibleStateDuration="2500" />
 <MudPopoverProvider />
 
 <MudLayout>
     @* BARRA SUPERIOR *@
-    <MudAppBar Color="Color.Primary" Fixed="true" Elevation="4">
-        <MudText Typo="Typo.h6" Class="fw-bold">Gestión de Stock TP6</MudText>
+    <MudAppBar Color="Color.Primary" Fixed="true" Elevation="2" Style="border-bottom-left-radius: 15px; border-bottom-right-radius: 15px;">
+        <MudText Typo="Typo.h6" Class="fw-bold" Style="font-family: 'Georgia', serif;">MOER Estética</MudText>
         <MudSpacer />
 
         <AuthorizeView>
             <Authorized>
-                <MudIconButton Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" Title="Mi Perfil" />
+                <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <MudMenuItem OnClick="CerrarSesion" Icon="@Icons.Material.Filled.Logout">Cerrar Sesión</MudMenuItem>
+                </MudMenu>
             </Authorized>
             <NotAuthorized>
-                <MudButton Href="/login" Color="Color.Secondary" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Login" Class="mud-elevation-2">
+                <MudButton Href="/login" Color="Color.Surface" Variant="Variant.Filled" Size="Size.Small" Class="rounded-pill">
                     Ingresar
                 </MudButton>
             </NotAuthorized>
@@ -31,57 +34,40 @@
 
     @* CONTENIDO PRINCIPAL *@
     <MudMainContent Class="pb-16" Style="background-color: var(--mud-palette-background); min-height: 100vh;">
-        <MudContainer MaxWidth="MaxWidth.Large">
+        <MudContainer MaxWidth="MaxWidth.Large" Class="pt-4">
             @Body
         </MudContainer>
     </MudMainContent>
 
-    @* BARRA INFERIOR *@
-    <MudAppBar Bottom="true" Fixed="true" Style="background-color: #455A64; padding: 0;" Elevation="8">
+    @* BARRA INFERIOR DE NAVEGACIÓN *@
+    <MudAppBar Bottom="true" Fixed="true" Style="background-color: #F5E6E0; padding: 0; border-top-left-radius: 20px; border-top-right-radius: 20px;" Elevation="8">
         <div class="d-flex justify-space-evenly align-center w-100 px-1" style="height: 100%;">
-            @* INICIO *@
+
             <MudButton Href="/" Style="@ObtenerEstiloBoton("/")" DisableRipple="true" Padding="Padding.None">
                 <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Medium" />
                 <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Inicio</MudText>
             </MudButton>
 
-            @* CATÁLOGO *@
-            <MudButton Href="/catalogo" Style="@ObtenerEstiloBoton("/catalogo")" DisableRipple="true" Padding="Padding.None">
-                <MudIcon Icon="@Icons.Material.Filled.Store" Size="Size.Medium" />
-                <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Catálogo</MudText>
+            <MudButton Href="/tratamientos" Style="@ObtenerEstiloBoton("/tratamientos")" DisableRipple="true" Padding="Padding.None">
+                <MudIcon Icon="@Icons.Material.Filled.Spa" Size="Size.Medium" />
+                <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Servicios</MudText>
             </MudButton>
 
-            @* ZONA ADMIN *@
-            <AuthorizeView Roles="Admin">
-                <Authorized>
-                    <MudButton Href="/ingresos" Style="@ObtenerEstiloBoton("/ingresos")" DisableRipple="true" Padding="Padding.None">
-                        <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Medium" />
-                        <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Ingresos</MudText>
-                    </MudButton>
+            <MudButton Href="/productos" Style="@ObtenerEstiloBoton("/productos")" DisableRipple="true" Padding="Padding.None">
+                <MudIcon Icon="@Icons.Material.Filled.Storefront" Size="Size.Medium" />
+                <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Tienda</MudText>
+            </MudButton>
 
-                    <MudButton Href="/reportes" Style="@ObtenerEstiloBoton("/reportes")" DisableRipple="true" Padding="Padding.None">
-                        <MudIcon Icon="@Icons.Material.Filled.PictureAsPdf" Size="Size.Medium" />
-                        <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Reportes</MudText>
-                    </MudButton>
-                </Authorized>
-            </AuthorizeView>
-
-            @* ZONA CLIENTE *@
             <AuthorizeView Roles="Cliente">
                 <Authorized>
+                    <MudButton Href="/mis-turnos" Style="@ObtenerEstiloBoton("/mis-turnos")" DisableRipple="true" Padding="Padding.None">
+                        <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Medium" />
+                        <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Turnos</MudText>
+                    </MudButton>
+
                     <MudButton Href="/carrito" Style="@ObtenerEstiloBoton("/carrito")" DisableRipple="true" Padding="Padding.None">
                         <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Size="Size.Medium" />
                         <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Carrito</MudText>
-                    </MudButton>
-                </Authorized>
-            </AuthorizeView>
-
-            @* LOGOUT *@
-            <AuthorizeView>
-                <Authorized>
-                    <MudButton OnClick="CerrarSesion" Style="@ObtenerEstiloBoton("/logout")" DisableRipple="true" Padding="Padding.None">
-                        <MudIcon Icon="@Icons.Material.Filled.Logout" Size="Size.Medium" />
-                        <MudText Typo="Typo.caption" Class="mt-1" Style="font-size: 10px;">Salir</MudText>
                     </MudButton>
                 </Authorized>
             </AuthorizeView>
@@ -90,17 +76,17 @@
 </MudLayout>
 
 @code {
-    private MudTheme _temaTP6 = new MudTheme()
+    private MudTheme _temaMoer = new MudTheme()
     {
         PaletteLight = new PaletteLight()
         {
-            Primary = "#607D8B",
-            Secondary = "#CDDC39",
-            AppbarBackground = "#455A64",
-            Background = "#CFD8DC",
-            Surface = "#ECEFF1",
-            TextPrimary = "#263238",
-            TextSecondary = "#546E7A"
+            Primary = "#E0926C", // Naranja Suave / Durazno
+            Secondary = "#B2C9AB", // Verde Menta
+            AppbarBackground = "#E0926C",
+            Background = "#FDFBF7", // Marfil
+            Surface = "#FFFFFF",
+            TextPrimary = "#3E3E3E",
+            TextSecondary = "#757575"
         }
     };
 
@@ -124,24 +110,18 @@
         var rutaActual = Navigation.ToBaseRelativePath(Navigation.Uri).ToLower();
         var rutaFormateada = $"/{rutaActual}";
 
-        string estiloBase = "flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-width: 0; padding: 2px; border-radius: 8px; transition: all 0.3s ease; text-transform: none;";
-        bool esBotonActivo = false;
+        string estiloBase = "flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-width: 0; padding: 2px; border-radius: 12px; transition: all 0.3s ease; text-transform: none;";
 
-        if (href == "/")
-        {
-            esBotonActivo = string.IsNullOrEmpty(rutaActual);
-        }
-        else
-        {
-            esBotonActivo = (rutaFormateada.Contains(href.ToLower()) && href != "/logout");
-        }
+        bool esBotonActivo = (href == "/") ? string.IsNullOrEmpty(rutaActual) : rutaFormateada.Contains(href.ToLower());
 
         if (esBotonActivo)
         {
-            return estiloBase + "color: #EEFF41; background-color: rgba(238, 255, 65, 0.15); font-weight: bold;";
+            // Botón activo (Color Durazno y fondo suave)
+            return estiloBase + "color: #E0926C; background-color: rgba(224, 146, 108, 0.15); font-weight: bold;";
         }
 
-        return estiloBase + "color: #B0BEC5; background-color: transparent;";
+        // Botón inactivo (Gris oscuro)
+        return estiloBase + "color: #9E9E9E; background-color: transparent;";
     }
 
     private void CerrarSesion()

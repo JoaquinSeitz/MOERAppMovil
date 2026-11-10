@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:local="clr-namespace:TrabajoPracticoProgramacionMovilN6"
-             xmlns:components="clr-namespace:TrabajoPracticoProgramacionMovilN6.Components"
-             x:Class="TrabajoPracticoProgramacionMovilN6.MainPage">
+             xmlns:local="clr-namespace:MOERAppMovil"
+             xmlns:components="clr-namespace:MOERAppMovil.Components"
+             x:Class="MOERAppMovil.MainPage">
 
     <BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html">
         <BlazorWebView.RootComponents>

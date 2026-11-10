@@ -1,153 +1,142 @@
 ﻿@page "/carrito"
-@using Microsoft.AspNetCore.Authorization
-@using System.Security.Claims
-@using TrabajoPracticoProgramacionMovilN6.Models
-@using TrabajoPracticoProgramacionMovilN6.Services
-@using Microsoft.AspNetCore.Components.Authorization
-@attribute [Authorize(Roles = "Cliente, Admin")]
-@inject CarritoService ServicioCarrito
-@inject HttpClient Http
+@using MOERAppMovil.DTOs
+@using MOERAppMovil.Services
+@using System.Text.Json
+@inject CarritoService CarritoSvc
+@inject PedidoService PedidoService
+@inject NavigationManager Navigation
 @inject ISnackbar Snackbar
-@inject AuthenticationStateProvider AuthStateProvider
 @implements IDisposable
+@attribute [Authorize(Roles = "Cliente")]
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4 mb-16">
-    <MudText Typo="Typo.h4" Color="Color.Primary" Align="Align.Center" GutterBottom="true"><b>Mi Carrito</b></MudText>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-5 pb-8">
+    <div class="d-flex align-center mb-6">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Color="Color.Primary" OnClick="VolverAtras" Class="mr-2" />
+        <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-family: 'Georgia', serif;">Mi Carrito</MudText>
+    </div>
 
-    @if (!ServicioCarrito.Items.Any())
+    @if (!CarritoSvc.Items.Any())
     {
-        <MudAlert Severity="Severity.Info" Class="mt-4">Tu carrito está vacío. ¡Ve al catálogo para agregar productos!</MudAlert>
+        <MudPaper Padding="Padding.All" Class="pa-8 d-flex flex-column align-center" Elevation="0" Style="background-color: transparent;">
+            <MudIcon Icon="@Icons.Material.Filled.RemoveShoppingCart" Color="Color.Default" Style="font-size: 80px; opacity: 0.5;" Class="mb-4" />
+            <MudText Typo="Typo.h6" Align="Align.Center" Color="Color.Default">Tu carrito está vacío</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-6 rounded-pill" Href="/productos">Ir a la Tienda</MudButton>
+        </MudPaper>
     }
     else
     {
-        <MudPaper Elevation="3" Class="pa-4 mt-4" Style="border-radius: 8px;">
+        <MudPaper Elevation="0" Class="pa-0 mb-6" Style="background-color: transparent;">
+            @foreach (var item in CarritoSvc.Items)
+            {
+                <MudCard Elevation="2" Class="mb-4" Style="border-radius: 12px;">
+                    <MudCardContent Class="pa-4">
+                        <div class="d-flex justify-space-between align-start">
+                            <div>
+                                <MudText Typo="Typo.subtitle1" Style="font-weight: bold;">@item.Producto.Nombre</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Default" Class="mb-2">@item.Producto.Precio.ToString("C") c/u</MudText>
+                            </div>
+                            <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline" Color="Color.Error" Size="Size.Small" OnClick="@(() => CarritoSvc.EliminarProducto(item.Producto.IdProducto))" />
+                        </div>
 
-            <MudList T="string">
-                @foreach (var item in ServicioCarrito.Items)
-                {
-                    <MudListItem T="string" Class="pa-2">
-                        @* REEMPLAZO RESPONSIVE: MudGrid evita que los elementos se solapen *@
-                        <MudGrid Spacing="1" AlignItems="AlignItems.Center" Class="w-100 m-0">
+                        <div class="d-flex justify-space-between align-center mt-2">
+                            <div style="width: 120px;">
+                                <MudNumericField T="int"
+                                                 Value="@item.Cantidad"
+                                                 ValueChanged="@((int val) => { CarritoSvc.ActualizarCantidad(item.Producto.IdProducto, val); })"
+                                                 Min="1" Max="@item.Producto.StockActual"
+                                                 Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                 Immediate="false" HideSpinButtons="false" />
+                            </div>
+                            <MudText Typo="Typo.subtitle1" Color="Color.Primary" Style="font-weight: bold;">@item.Subtotal.ToString("C")</MudText>
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            }
+        </MudPaper>
 
-                            @* 1. Columna del Ícono *@
-                            <MudItem xs="2" sm="1" Class="d-flex justify-center">
-                                <MudAvatar Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
-                                    <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Small" />
-                                </MudAvatar>
-                            </MudItem>
-
-                            @* 2. Columna del Texto (Usa text-truncate para cortar textos largos) *@
-                            <MudItem xs="6" sm="7" Class="overflow-hidden">
-                                <MudText Typo="Typo.body1" Color="Color.Primary" Class="fw-bold text-truncate">@item.Nombre</MudText>
-                                <MudText Typo="Typo.caption" Style="color: #78909C;">Cantidad: @item.Cantidad</MudText>
-                            </MudItem>
-
-                            @* 3. Columna del Precio y Borrar *@
-                            <MudItem xs="4" sm="4" Class="d-flex justify-end align-center px-0">
-                                @* ACÁ APLICAMOS EL COLOR AL SUBTOTAL DEL ITEM *@
-                                <MudText Typo="Typo.body2" Class="mr-2 fw-bold" Style="color: #28424f;">@item.Subtotal.ToString("C")</MudText>
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                               Color="Color.Error"
-                                               Size="Size.Small"
-                                               OnClick="() => ServicioCarrito.RemoverDelCarrito(item.ProductoId)" />
-                            </MudItem>
-
-                        </MudGrid>
-                    </MudListItem>
-                    <MudDivider />
-                }
-            </MudList>
-
-            <div class="d-flex justify-space-between align-center mt-6 mb-4 px-4">
-                <MudText Typo="Typo.h5" Color="Color.Primary">Total a Pagar:</MudText>
-                @* ACÁ APLICAMOS EL COLOR AL TOTAL GENERAL *@
-                <MudText Typo="Typo.h4" Class="fw-bold" Style="color: #28424f;">@ServicioCarrito.ObtenerTotal().ToString("C")</MudText>
+        <MudPaper Elevation="4" Class="pa-4" Style="border-radius: 15px; background-color: var(--mud-palette-surface);">
+            <div class="d-flex justify-space-between align-center mb-4">
+                <MudText Typo="Typo.h6">Total a Pagar:</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: bold;">@CarritoSvc.ObtenerTotal().ToString("C")</MudText>
             </div>
 
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Secondary"
-                       Size="Size.Large"
-                       FullWidth="true"
-                       Class="mud-elevation-8 mt-2"
-                       StartIcon="@Icons.Material.Filled.Payment"
-                       Disabled="@procesandoPago"
-                       OnClick="FinalizarCompra">
-                @(procesandoPago ? "Procesando pago..." : "Simular Pago y Finalizar")
+            <MudText Typo="Typo.caption" Color="Color.Default" Class="d-block mb-4 text-center">
+                * El pago y retiro se realizan en el local.
+            </MudText>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true"
+                       OnClick="ConfirmarPedido" Disabled="@isSubmitting" Style="border-radius: 8px;">
+                @if (isSubmitting)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <span class="ms-2">Procesando...</span>
+                }
+                else
+                {
+                    <span>Confirmar Pedido</span>
+                }
             </MudButton>
         </MudPaper>
     }
 </MudContainer>
 
 @code {
-    private bool procesandoPago = false;
+    private bool isSubmitting = false;
 
     protected override void OnInitialized()
     {
-        ServicioCarrito.OnCarritoActualizado += StateHasChanged;
+        CarritoSvc.OnChange += StateHasChanged;
     }
 
     public void Dispose()
     {
-        ServicioCarrito.OnCarritoActualizado -= StateHasChanged;
+        CarritoSvc.OnChange -= StateHasChanged;
     }
 
-    private async Task FinalizarCompra()
+    private void VolverAtras()
     {
-        procesandoPago = true;
+        Navigation.NavigateTo("/productos");
+    }
+
+    private async Task ConfirmarPedido()
+    {
+        isSubmitting = true;
+        var dto = CarritoSvc.GenerarDTO();
 
         try
         {
-            // 1. Extraemos los datos del usuario logueado en ese momento
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-
-            // Buscamos el ID del usuario en los Claims (ClaimTypes.NameIdentifier)
-            var claimId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            // Si por algún motivo no encontramos el ID, asignamos un valor por defecto (como el 1),
-            // aunque estando bajo [Authorize], el ClaimId debería existir siempre.
-            int usuarioIdReal = 1;
-            if (!string.IsNullOrEmpty(claimId))
-            {
-                int.TryParse(claimId, out usuarioIdReal);
-            }
-
-            // 2. Construimos la petición enviando el ID del usuario que realmente está comprando
-            var request = new SalidaProductoRequest
-            {
-                // En un sistema real, un Usuario puede ser distinto a un Cliente,
-                // pero según la lógica de tu login de clientes, al registrarse se crean en ambas tablas con los mismos datos base.
-                // Como simplificación para este flujo, asignamos el ID del usuario logueado a ambas propiedades.
-                ClienteId = usuarioIdReal,
-                UsuarioId = usuarioIdReal,
-                Detalles = ServicioCarrito.Items.Select(i => new DetalleMovimientoRequest
-                {
-                    ProductoId = i.ProductoId,
-                    Cantidad = i.Cantidad
-                }).ToList()
-            };
-
-            // 3. Enviamos la petición al backend
-            var response = await Http.PostAsJsonAsync("api/SalidaProductos", request);
+            var response = await PedidoService.CrearPedido(dto);
 
             if (response.IsSuccessStatusCode)
             {
-                Snackbar.Add("¡Pago exitoso! El ticket fue enviado a tu correo.", Severity.Success);
-                ServicioCarrito.VaciarCarrito();
+                Snackbar.Add("¡Pedido generado con éxito! Retíralo en el local.", Severity.Success);
+                CarritoSvc.VaciarCarrito();
+                // Eliminamos la redirección a la ruta inexistente de pedidos
             }
             else
             {
-                var error = await response.Content.ReadAsStringAsync();
-                Snackbar.Add($"Error al procesar: {error}", Severity.Error);
+                string mensajeError = "Error procesando el pedido.";
+                var errorStr = await response.Content.ReadAsStringAsync();
+
+                try
+                {
+                    var errorResult = JsonSerializer.Deserialize<ErrorResponse>(errorStr, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    if (!string.IsNullOrEmpty(errorResult?.Mensaje)) mensajeError = errorResult.Mensaje;
+                }
+                catch { }
+
+                Snackbar.Add(mensajeError, Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Ocurrió un error de conexión con el servidor. {ex.Message}", Severity.Error);
+            Snackbar.Add("Falla de conexión al procesar el pedido.", Severity.Error);
         }
         finally
         {
-            procesandoPago = false;
+            isSubmitting = false;
         }
     }
+
+    private class ErrorResponse { public string Mensaje { get; set; } }
 }

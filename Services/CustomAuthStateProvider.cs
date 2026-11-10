@@ -1,18 +1,17 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
 using System.Security.Claims;
 
-namespace TrabajoPracticoProgramacionMovilN6.Services
+namespace MOERAppMovil.Services
 {
     public class CustomAuthStateProvider : AuthenticationStateProvider
     {
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            // Buscamos TODOS los datos de sesión guardados
             var token = await SecureStorage.Default.GetAsync("jwt_token");
             var nombre = await SecureStorage.Default.GetAsync("user_name");
             var rol = await SecureStorage.Default.GetAsync("user_role");
-            var id = await SecureStorage.Default.GetAsync("user_id");       // Faltaba
-            var email = await SecureStorage.Default.GetAsync("user_email"); // Faltaba
+            var id = await SecureStorage.Default.GetAsync("user_id");
+            var email = await SecureStorage.Default.GetAsync("user_email");
 
             var identity = new ClaimsIdentity();
 
@@ -22,7 +21,6 @@ namespace TrabajoPracticoProgramacionMovilN6.Services
                 {
                     new Claim(ClaimTypes.Name, nombre ?? "Usuario"),
                     new Claim(ClaimTypes.Role, rol ?? "Cliente"),
-                    // AHORA SÍ CARGAMOS EL ID Y EL EMAIL A LA IDENTIDAD:
                     new Claim(ClaimTypes.NameIdentifier, id ?? "1"),
                     new Claim(ClaimTypes.Email, email ?? "")
                 }, "jwt");
@@ -32,8 +30,6 @@ namespace TrabajoPracticoProgramacionMovilN6.Services
             return new AuthenticationState(user);
         }
 
-        // Le pusimos valores por defecto (id="" y email="") para que no se te rompa tu Login.razor actual, 
-        // pero lo ideal será que luego le pases todos los datos.
         public void MarcarComoAutenticado(string nombre, string rol, string id = "", string email = "")
         {
             var identity = new ClaimsIdentity(new[]

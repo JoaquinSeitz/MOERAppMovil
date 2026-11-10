@@ -1,0 +1,90 @@
+﻿@page "/mis-turnos"
+@using MOERAppMovil.DTOs
+@using MOERAppMovil.Services
+@inject TurnoService TurnoService
+@inject ISnackbar Snackbar
+@attribute [Authorize(Roles = "Cliente")]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-5">
+    <MudText Typo="Typo.h4" GutterBottom="true" Color="Color.Primary">Mis Turnos</MudText>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mb-4" Href="/agendar-turno">
+        Agendar Nuevo Turno
+    </MudButton>
+
+    @if (turnos == null)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else if (!turnos.Any())
+    {
+        <MudAlert Severity="Severity.Info">No tienes turnos registrados actualmente.</MudAlert>
+    }
+    else
+    {
+        <MudTable Items="@turnos" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="4">
+            <HeaderContent>
+                <MudTh>Fecha</MudTh>
+                <MudTh>Hora</MudTh>
+                <MudTh>Servicio</MudTh>
+                <MudTh>Precio</MudTh>
+                <MudTh>Estado</MudTh>
+                <MudTh>Acciones</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Fecha">@context.Fecha.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd DataLabel="Hora">@context.HoraInicio.ToString(@"hh\:mm")</MudTd>
+                <MudTd DataLabel="Servicio">@context.Servicio</MudTd>
+                <MudTd DataLabel="Precio">@context.Precio.ToString("C")</MudTd>
+                <MudTd DataLabel="Estado">
+                    <MudChip T="string" Color="@GetEstadoColor(context.Estado)" Size="Size.Small">@context.Estado</MudChip>
+                </MudTd>
+                <MudTd DataLabel="Acciones">
+                    @if (context.Estado == "Pendiente")
+                    {
+                        <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined"
+                                   OnClick="@(() => CancelarTurno(context.IdTurno))">
+                            Cancelar
+                        </MudButton>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</MudContainer>
+
+@code {
+    private List<TurnoResponseDTO> turnos;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarTurnos();
+    }
+
+    private async Task CargarTurnos()
+    {
+        turnos = await TurnoService.GetMisTurnos();
+    }
+
+    private async Task CancelarTurno(int idTurno)
+    {
+        var response = await TurnoService.CancelarTurno(idTurno);
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Turno cancelado exitosamente", Severity.Success);
+            await CargarTurnos();
+        }
+        else
+        {
+            Snackbar.Add("Hubo un problema al cancelar el turno", Severity.Error);
+        }
+    }
+
+    private Color GetEstadoColor(string estado) => estado switch
+    {
+        "Pendiente" => Color.Warning,
+        "Completado" => Color.Success,
+        "Cancelado" => Color.Error,
+        _ => Color.Default
+    };
+}

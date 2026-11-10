@@ -1,0 +1,155 @@
+﻿@page "/agendar-turno"
+@using MOERAppMovil.DTOs
+@using MOERAppMovil.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject TurnoService TurnoService
+@inject CatalogoService CatalogoService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+@attribute [Authorize(Roles = "Cliente")]
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-4 pb-8">
+    <MudPaper Padding="Padding.All" Class="pa-6" Elevation="4" Style="border-radius: 15px;">
+        <div class="d-flex align-center mb-4">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Color="Color.Primary" OnClick="VolverAtras" Class="mr-2" />
+            <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-family: 'Georgia', serif;">Agendar Turno</MudText>
+        </div>
+
+        @if (_cargandoServicios)
+        {
+            <div class="d-flex justify-center my-6">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (!_servicios.Any())
+        {
+            <MudAlert Severity="Severity.Warning">No hay tratamientos disponibles en este momento.</MudAlert>
+        }
+        else
+        {
+            <EditForm Model="@_turnoDTO" OnValidSubmit="ConfirmarReserva">
+                <DataAnnotationsValidator />
+
+                <MudSelect T="int" Label="Tratamiento" @bind-Value="_turnoDTO.IdServicio" Variant="Variant.Outlined" Class="mb-5" AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var srv in _servicios)
+                    {
+                        <MudSelectItem Value="@srv.IdServicio">@srv.Nombre - @srv.Precio.ToString("C")</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudDatePicker Label="Día"
+                               @bind-Date="_fechaSeleccionada"
+                               Variant="Variant.Outlined"
+                               Class="mb-5"
+                               MinDate="DateTime.Today.AddDays(1)"
+                               PickerVariant="PickerVariant.Dialog"
+                               Color="Color.Primary"
+                               DisableToolbar="true" />
+
+                <MudTimePicker Label="Hora"
+                               @bind-Time="_horaSeleccionada"
+                               Variant="Variant.Outlined"
+                               Class="mb-6"
+                               PickerVariant="PickerVariant.Dialog"
+                               Color="Color.Primary"
+                               AmPm="false"
+                               MinuteSelectionStep="30" />
+
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Disabled="@_enviandoReserva" Style="border-radius: 8px;" Size="Size.Large">
+                    @if (_enviandoReserva)
+                    {
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    }
+                    else
+                    {
+                        <text>Confirmar Turno</text>
+                    }
+                </MudButton>
+            </EditForm>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private TurnoCreateDTO _turnoDTO = new();
+    private List<ServicioResponseDTO> _servicios = new();
+    private bool _cargandoServicios = true;
+    private bool _enviandoReserva = false;
+    private DateTime? _fechaSeleccionada;
+    private TimeSpan? _horaSeleccionada;
+    private int _idCliente;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var idClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier);
+            if (idClaim != null && int.TryParse(idClaim.Value, out int id))
+            {
+                _idCliente = id;
+            }
+
+            _servicios = await CatalogoService.GetServiciosAsync();
+        }
+        catch
+        {
+            Snackbar.Add("Error al cargar los servicios", Severity.Error);
+        }
+        finally
+        {
+            _cargandoServicios = false;
+        }
+    }
+
+    private async Task ConfirmarReserva()
+    {
+        if (_turnoDTO.IdServicio == 0)
+        {
+            Snackbar.Add("Debes seleccionar un tratamiento.", Severity.Warning);
+            return;
+        }
+        if (!_fechaSeleccionada.HasValue || !_horaSeleccionada.HasValue)
+        {
+            Snackbar.Add("Debes seleccionar el día y la hora.", Severity.Warning);
+            return;
+        }
+
+        _enviandoReserva = true;
+
+        //_turnoDTO.IdCliente = _idCliente;
+        _turnoDTO.Fecha = _fechaSeleccionada.Value;
+        _turnoDTO.HoraInicio = _horaSeleccionada.Value;
+
+        try
+        {
+            var response = await TurnoService.CrearTurno(_turnoDTO);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("¡Turno reservado exitosamente!", Severity.Success);
+                Navigation.NavigateTo("/mis-turnos");
+            }
+            else
+            {
+                var errorStr = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"No se pudo reservar. Revisa la disponibilidad.", Severity.Error);
+            }
+        }
+        catch
+        {
+            Snackbar.Add("Falla de red al confirmar el turno.", Severity.Error);
+        }
+        finally
+        {
+            _enviandoReserva = false;
+        }
+    }
+
+    private void VolverAtras()
+    {
+        Navigation.NavigateTo("/mis-turnos");
+    }
+}

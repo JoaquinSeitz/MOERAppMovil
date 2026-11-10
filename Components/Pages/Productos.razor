@@ -1,0 +1,132 @@
+﻿@page "/productos"
+@using MOERAppMovil.DTOs
+@using MOERAppMovil.Services
+@inject CatalogoService CatalogoSvc
+@inject CarritoService CarritoSvc
+@inject ISnackbar Snackbar
+@implements IDisposable
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8 mb-16">
+    <MudText Typo="Typo.h3" Align="Align.Center" GutterBottom="true" Color="Color.Primary">Nuestros Productos</MudText>
+    <MudText Typo="Typo.subtitle1" Align="Align.Center" Class="mb-8">Explorá nuestro catálogo de estética y cuidado personal.</MudText>
+
+    @if (productos == null)
+    {
+        <MudGrid Justify="Justify.Center">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </MudGrid>
+    }
+    else if (!productos.Any())
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-4">Actualmente no hay productos disponibles en el catálogo.</MudAlert>
+    }
+    else
+    {
+        <MudGrid>
+            @foreach (var prod in productos)
+            {
+                int stockDisponibleVisual = prod.StockActual - CarritoSvc.ObtenerCantidadEnCarrito(prod.IdProducto);
+
+                if (!cantidadesSeleccionadas.ContainsKey(prod.IdProducto))
+                    cantidadesSeleccionadas[prod.IdProducto] = stockDisponibleVisual > 0 ? 1 : 0;
+
+                if (cantidadesSeleccionadas[prod.IdProducto] > stockDisponibleVisual && stockDisponibleVisual > 0)
+                    cantidadesSeleccionadas[prod.IdProducto] = stockDisponibleVisual;
+
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudCard Elevation="3" Class="h-100 d-flex flex-column rounded-lg">
+                        <MudCardMedia Image="@(string.IsNullOrEmpty(prod.Imagen) ? "images/producto-placeholder.jpg" : $"https://localhost:7133{prod.Imagen}")" Height="200" />
+                        <MudCardContent Class="flex-grow-1">
+                            <MudText Typo="Typo.h6">@prod.Nombre</MudText>
+                            @if (!string.IsNullOrEmpty(prod.Descripcion))
+                            {
+                                <MudText Typo="Typo.body2" Class="mt-1 mb-2">@prod.Descripcion</MudText>
+                            }
+                            <MudText Typo="Typo.h5" Color="Color.Secondary" Class="mt-2">@prod.Precio.ToString("C")</MudText>
+
+                            @if (stockDisponibleVisual > 0)
+                            {
+                                <MudText Typo="Typo.caption" Class="mt-1" Color="Color.Success">Disponible: @stockDisponibleVisual</MudText>
+                            }
+                            else if (prod.StockActual > 0)
+                            {
+                                <MudText Typo="Typo.caption" Class="mt-1" Color="Color.Warning">Has añadido todo el stock al carrito.</MudText>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption" Class="mt-1" Color="Color.Error">Agotado</MudText>
+                            }
+
+                            <!-- Solo los Clientes ven el selector de cantidad -->
+                            <AuthorizeView Roles="Cliente" Context="clienteContext">
+                                <Authorized>
+                                    @if (stockDisponibleVisual > 0)
+                                    {
+                                        <div class="d-flex align-center mt-3">
+                                            <MudText Typo="Typo.body2" Class="mr-3">Cantidad:</MudText>
+                                            <MudNumericField @bind-Value="cantidadesSeleccionadas[prod.IdProducto]"
+                                                             Min="1" Max="@stockDisponibleVisual"
+                                                             Variant="Variant.Outlined" Margin="Margin.Dense" HideSpinButtons="false" />
+                                        </div>
+                                    }
+                                </Authorized>
+                            </AuthorizeView>
+                        </MudCardContent>
+                        <MudCardActions Class="justify-center pb-4">
+
+                            <!-- Botón de compra exclusivo para Clientes -->
+                            <AuthorizeView Roles="Cliente" Context="clienteContext">
+                                <Authorized>
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                               StartIcon="@Icons.Material.Filled.AddShoppingCart"
+                                               Disabled="@(stockDisponibleVisual <= 0 || cantidadesSeleccionadas[prod.IdProducto] < 1)"
+                                               OnClick="@(() => AgregarAlCarrito(prod, cantidadesSeleccionadas[prod.IdProducto]))">
+                                        Agregar
+                                    </MudButton>
+                                </Authorized>
+                            </AuthorizeView>
+
+                            <!-- Botón de login para Visitantes no autenticados -->
+                            <AuthorizeView Context="visitanteContext">
+                                <NotAuthorized>
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/login">
+                                        Iniciá sesión para comprar
+                                    </MudButton>
+                                </NotAuthorized>
+                            </AuthorizeView>
+
+                            <!-- El Administrador no cumple ninguna de las dos condiciones anteriores,
+                                 por lo tanto, solo verá la tarjeta informativa sin botones, tal como solicitaste. -->
+
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+    private List<ProductoResponseDTO> productos;
+    private Dictionary<int, int> cantidadesSeleccionadas = new Dictionary<int, int>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        productos = await CatalogoSvc.GetProductosActivosAsync();
+        CarritoSvc.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        CarritoSvc.OnChange -= StateHasChanged;
+    }
+
+    private void AgregarAlCarrito(ProductoResponseDTO producto, int cantidad)
+    {
+        CarritoSvc.AgregarProducto(producto, cantidad);
+        Snackbar.Add($"{cantidad}x {producto.Nombre} agregado(s) al carrito", Severity.Success);
+
+        int stockRestante = producto.StockActual - CarritoSvc.ObtenerCantidadEnCarrito(producto.IdProducto);
+        cantidadesSeleccionadas[producto.IdProducto] = stockRestante > 0 ? 1 : 0;
+    }
+}

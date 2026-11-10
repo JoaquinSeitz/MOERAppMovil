@@ -1,7 +1,7 @@
 ﻿using ObjCRuntime;
 using UIKit;
 
-namespace TrabajoPracticoProgramacionMovilN6
+namespace MOERAppMovil
 {
     public class Program
     {

@@ -1,6 +1,6 @@
 ﻿using Foundation;
 
-namespace TrabajoPracticoProgramacionMovilN6
+namespace MOERAppMovil
 {
     [Register("AppDelegate")]
     public class AppDelegate : MauiUIApplicationDelegate

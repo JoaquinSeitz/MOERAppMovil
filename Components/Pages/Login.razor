@@ -1,97 +1,68 @@
 ﻿@page "/login"
-@using TrabajoPracticoProgramacionMovilN6.Services
+@using MOERAppMovil.DTOs
+@using MOERAppMovil.Services
 @inject AuthService AuthService
-@inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
-    <MudCard Elevation="4" Class="pa-6 rounded-lg">
-        <MudCardHeader>
-            <CardHeaderContent>
-                <MudText Typo="Typo.h4" Align="Align.Center" Color="Color.Primary"><b>Iniciar Sesión</b></MudText>
-                <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-2">Ingresá tus credenciales para continuar</MudText>
-            </CardHeaderContent>
-        </MudCardHeader>
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+    <MudPaper Padding="Padding.All" Class="pa-8" Elevation="4" Style="border-radius: 15px;">
+        <div class="d-flex justify-center mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.Spa" Color="Color.Primary" Size="Size.Large" />
+        </div>
+        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-6" Style="font-family: 'Georgia', serif; color: #E0926C;">
+            Iniciar Sesión
+        </MudText>
 
-        <MudCardContent>
-            <MudTextField @bind-Value="email" Label="Correo Electrónico" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-4" />
-            <MudTextField @bind-Value="password" Label="Contraseña" Variant="Variant.Outlined" Margin="Margin.Dense" InputType="InputType.Password" />
-        </MudCardContent>
+        <EditForm Model="@loginModel" OnValidSubmit="ProcesarLogin">
+            <DataAnnotationsValidator />
+            <MudTextField @bind-Value="loginModel.Email" Label="Correo Electrónico" For="@(() => loginModel.Email)" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="loginModel.Contrasenia" Label="Contraseña" For="@(() => loginModel.Contrasenia)" InputType="InputType.Password" Variant="Variant.Outlined" Class="mb-4" />
 
-        <MudCardActions Class="d-flex flex-column mt-2 px-2 pb-2 gap-3">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" OnClick="EjecutarLogin" Disabled="@_cargando">
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Disabled="@_cargando" Style="border-radius: 8px; margin-bottom: 24px;">
                 @if (_cargando)
                 {
-                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" Color="Color.Surface" />
-                    <MudText Class="ms-2">Conectando...</MudText>
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
                 }
                 else
                 {
-                    <MudText>Ingresar</MudText>
+                    <text>Ingresar</text>
                 }
             </MudButton>
+        </EditForm>
 
-            <MudButton Href="/registro" Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Large" FullWidth="true" Disabled="@_cargando">
-                <MudText>Registrarse</MudText>
-            </MudButton>
-        </MudCardActions>
-    </MudCard>
+        <MudDivider Class="mb-4" />
+
+        <MudAlert Severity="Severity.Info" Class="mt-2" Dense="true" Icon="@Icons.Material.Filled.DesktopMac">
+            Para registrar una cuenta nueva, por favor ingresa a nuestro sitio web desde tu computadora o navegador.
+        </MudAlert>
+
+    </MudPaper>
 </MudContainer>
 
 @code {
-    private string email = "";
-    private string password = "";
+    private LoginDTO loginModel = new();
     private bool _cargando = false;
 
-    private async Task EjecutarLogin()
+    private async Task ProcesarLogin()
     {
-        // Limpiamos mensajes anteriores para no apilarlos
-        Snackbar.Clear();
-
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-        {
-            Snackbar.Add("El correo electrónico y la contraseña son obligatorios.", Severity.Warning);
-            return;
-        }
-
         _cargando = true;
-        StateHasChanged();
-
-        var resultado = await AuthService.LoginAsync(email, password);
+        var resultado = await AuthService.LoginAsync(loginModel.Email, loginModel.Contrasenia);
 
         if (resultado.Exito)
         {
-            var nombre = await SecureStorage.Default.GetAsync("user_name");
-            var rol = await SecureStorage.Default.GetAsync("user_role");
-            var id = await SecureStorage.Default.GetAsync("user_id");
-            var emailStorage = await SecureStorage.Default.GetAsync("user_email");
-
-            if (rol == "Operador")
-            {
-                AuthService.Logout();
-                Snackbar.Add("Acceso denegado. Los operadores solo pueden usar el sistema web interno.", Severity.Error);
-                _cargando = false;
-                return;
-            }
-
             var customAuthStateProvider = (CustomAuthStateProvider)AuthStateProvider;
-            customAuthStateProvider.MarcarComoAutenticado(
-                nombre ?? "Usuario",
-                rol ?? "Cliente",
-                id ?? "1",
-                emailStorage ?? ""
-            );
+            customAuthStateProvider.MarcarComoAutenticado("Usuario", "Cliente");
 
-            Snackbar.Add($"¡Hola, {nombre}!", Severity.Success);
-            Navigation.NavigateTo("/");
+            Snackbar.Add("¡Bienvenido a MOER Estética!", Severity.Success);
+            Navigation.NavigateTo("/", forceLoad: true);
         }
         else
         {
-            // Mensaje genérico de seguridad exacto
-            Snackbar.Add("El email o la contraseña no son correctos o estan mal escritos", Severity.Error);
+            Snackbar.Add(resultado.Mensaje, Severity.Error);
         }
-
         _cargando = false;
     }
 }

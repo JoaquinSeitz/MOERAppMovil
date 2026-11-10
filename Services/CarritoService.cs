@@ -1,80 +1,97 @@
-﻿namespace TrabajoPracticoProgramacionMovilN6.Services
+﻿using MOERAppMovil.DTOs;
+
+namespace MOERAppMovil.Services
 {
     public class CarritoService
     {
-        // Evento para avisarle a los componentes (como un badge en el menú) que el carrito se actualizó
-        public event Action? OnCarritoActualizado;
+        public List<ItemCarrito> Items { get; private set; } = new List<ItemCarrito>();
 
-        // Lista interna que mantiene los productos en memoria
-        private readonly List<ItemCarrito> _items = new();
+        public event Action OnChange;
 
-        // Propiedad pública para leer los items desde las vistas
-        public IReadOnlyList<ItemCarrito> Items => _items.AsReadOnly();
-
-        public void AgregarAlCarrito(int productoId, string nombre, decimal precio, int stockDisponible, int cantidad = 1)
+        // Permite a la tienda saber cuánto stock ya está retenido en el carrito
+        public int ObtenerCantidadEnCarrito(int idProducto)
         {
-            var itemExistente = _items.FirstOrDefault(i => i.ProductoId == productoId);
+            var item = Items.FirstOrDefault(i => i.Producto.IdProducto == idProducto);
+            return item?.Cantidad ?? 0;
+        }
+
+        public void AgregarProducto(ProductoResponseDTO producto, int cantidad)
+        {
+            var itemExistente = Items.FirstOrDefault(i => i.Producto.IdProducto == producto.IdProducto);
+            int cantidadActual = itemExistente?.Cantidad ?? 0;
+
+            // Seguridad: Bloquea intentos de agregar más del stock físico
+            if (cantidadActual + cantidad > producto.StockActual) return;
 
             if (itemExistente != null)
             {
-                // Verificamos no pasarnos del stock
-                if (itemExistente.Cantidad + cantidad <= stockDisponible)
-                {
-                    itemExistente.Cantidad += cantidad;
-                }
-                else
-                {
-                    throw new InvalidOperationException("No hay suficiente stock disponible.");
-                }
+                itemExistente.Cantidad += cantidad;
             }
             else
             {
-                if (cantidad <= stockDisponible)
-                {
-                    _items.Add(new ItemCarrito
-                    {
-                        ProductoId = productoId,
-                        Nombre = nombre,
-                        PrecioUnitario = precio,
-                        Cantidad = cantidad,
-                        StockMaximo = stockDisponible
-                    });
-                }
+                Items.Add(new ItemCarrito { Producto = producto, Cantidad = cantidad });
             }
-
-            NotificarCambio();
+            NotifyStateChanged();
         }
 
-        public void RemoverDelCarrito(int productoId)
+        // Permite modificar las unidades exactas desde la tabla del carrito
+        public void ActualizarCantidad(int idProducto, int nuevaCantidad)
         {
-            var item = _items.FirstOrDefault(i => i.ProductoId == productoId);
+            var item = Items.FirstOrDefault(i => i.Producto.IdProducto == idProducto);
             if (item != null)
             {
-                _items.Remove(item);
-                NotificarCambio();
+                if (nuevaCantidad <= 0)
+                {
+                    Items.Remove(item); // Si baja a 0, se elimina automáticamente
+                }
+                else if (nuevaCantidad <= item.Producto.StockActual)
+                {
+                    item.Cantidad = nuevaCantidad;
+                }
+                NotifyStateChanged();
+            }
+        }
+
+        public void EliminarProducto(int idProducto)
+        {
+            var item = Items.FirstOrDefault(i => i.Producto.IdProducto == idProducto);
+            if (item != null)
+            {
+                Items.Remove(item);
+                NotifyStateChanged();
             }
         }
 
         public void VaciarCarrito()
         {
-            _items.Clear();
-            NotificarCambio();
+            Items.Clear();
+            NotifyStateChanged();
         }
 
-        public decimal ObtenerTotal() => _items.Sum(i => i.Subtotal);
+        public decimal ObtenerTotal()
+        {
+            return Items.Sum(i => i.Producto.Precio * i.Cantidad);
+        }
 
-        public int ObtenerCantidadItems() => _items.Sum(i => i.Cantidad);
+        public PedidoCreateDTO GenerarDTO()
+        {
+            return new PedidoCreateDTO
+            {
+                Detalles = Items.Select(i => new DetallePedidoCreateDTO
+                {
+                    IdProducto = i.Producto.IdProducto,
+                    Cantidad = i.Cantidad
+                }).ToList()
+            };
+        }
 
-        private void NotificarCambio() => OnCarritoActualizado?.Invoke();
+        private void NotifyStateChanged() => OnChange?.Invoke();
     }
 
     public class ItemCarrito
     {
-        public int ProductoId { get; set; }
-        public string Nombre { get; set; } = string.Empty;
-        public decimal PrecioUnitario { get; set; }
+        public ProductoResponseDTO Producto { get; set; }
         public int Cantidad { get; set; }
-        public int StockMaximo { get; set; }
-        public decimal Subtotal => PrecioUnitario * Cantidad;
+        public decimal Subtotal => Producto.Precio * Cantidad;
     }
 }

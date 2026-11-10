@@ -1,7 +1,7 @@
 ﻿using Android.App;
 using Android.Runtime;
 
-namespace TrabajoPracticoProgramacionMovilN6
+namespace MOERAppMovil
 {
     [Application]
     public class MainApplication : MauiApplication
