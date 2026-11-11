@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Json;
+using Microsoft.Maui.Storage;
 
 namespace MOERAppMovil.Services
 {
@@ -24,19 +25,25 @@ namespace MOERAppMovil.Services
 
                     if (result != null && !string.IsNullOrEmpty(result.Token))
                     {
+                        // 1. REGLA DE NEGOCIO: Bloquear el acceso a administradores en la app móvil
+                        if (result.Rol == "Administrador" || result.Rol == "Admin")
+                        {
+                            return (false, "Acceso denegado: La aplicación móvil es exclusiva para clientes. Por favor, gestioná el sistema desde el panel web.");
+                        }
+
+                        // 2. Si es cliente, procedemos normalmente a guardar la sesión
                         await SecureStorage.Default.SetAsync("jwt_token", result.Token);
 
-                        // Validamos estrictamente que no haya strings vacíos ("") porque Windows los rechaza
                         string nombreSeguro = string.IsNullOrWhiteSpace(result.Nombre) ? "Usuario" : result.Nombre;
                         await SecureStorage.Default.SetAsync("user_name", nombreSeguro);
 
                         string rolSeguro = string.IsNullOrWhiteSpace(result.Rol) ? "Cliente" : result.Rol;
                         await SecureStorage.Default.SetAsync("user_role", rolSeguro);
 
-                        // Al convertirse a string, un número siempre tiene longitud (ej. "0" o "5"), por lo que es seguro
-                        await SecureStorage.Default.SetAsync("user_id", result.IdCliente.ToString());
+                        // Manejo seguro del IdCliente (que ahora puede ser nulo)
+                        string idSeguro = result.IdCliente?.ToString() ?? "0";
+                        await SecureStorage.Default.SetAsync("user_id", idSeguro);
 
-                        // Usamos la variable 'email' del parámetro del método si el backend lo devuelve vacío
                         string emailSeguro = string.IsNullOrWhiteSpace(result.Email) ? email : result.Email;
                         await SecureStorage.Default.SetAsync("user_email", emailSeguro);
 
@@ -73,7 +80,10 @@ namespace MOERAppMovil.Services
     public class LoginResponse
     {
         public string Token { get; set; } = string.Empty;
-        public int IdCliente { get; set; } // Adaptado al backend
+
+        // El signo de interrogación hace que ahora acepte valores nulos sin romper la aplicación
+        public int? IdCliente { get; set; }
+
         public string Nombre { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Rol { get; set; } = string.Empty;

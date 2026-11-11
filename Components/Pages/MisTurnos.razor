@@ -5,56 +5,67 @@
 @inject ISnackbar Snackbar
 @attribute [Authorize(Roles = "Cliente")]
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-5">
-    <MudText Typo="Typo.h4" GutterBottom="true" Color="Color.Primary">Mis Turnos</MudText>
-
-    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mb-4" Href="/agendar-turno">
-        Agendar Nuevo Turno
-    </MudButton>
+<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="pt-4 pb-16">
+    <div class="d-flex align-center justify-space-between mb-4">
+        <MudText Typo="Typo.h5" Style="color: var(--mud-palette-primary); font-family: 'Georgia', serif;">Mis Turnos</MudText>
+        <MudButton Variant="Variant.Filled" Size="Size.Small" Href="/agendar-turno" Style="background-color: var(--mud-palette-secondary); color: white; border-radius: 8px;">
+            + Nuevo
+        </MudButton>
+    </div>
 
     @if (turnos == null)
     {
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        <div class="d-flex justify-center my-8">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </div>
     }
     else if (!turnos.Any())
     {
-        <MudAlert Severity="Severity.Info">No tienes turnos registrados actualmente.</MudAlert>
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Style="border-color: var(--mud-palette-primary);">
+            No tienes turnos registrados actualmente.
+        </MudAlert>
     }
     else
     {
-        <MudTable Items="@turnos" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="4">
-            <HeaderContent>
-                <MudTh>Fecha</MudTh>
-                <MudTh>Hora</MudTh>
-                <MudTh>Servicio</MudTh>
-                <MudTh>Precio</MudTh>
-                <MudTh>Estado</MudTh>
-                <MudTh>Acciones</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Fecha">@context.Fecha.ToString("dd/MM/yyyy")</MudTd>
-                <MudTd DataLabel="Hora">@context.HoraInicio.ToString(@"hh\:mm")</MudTd>
-                <MudTd DataLabel="Servicio">@context.Servicio</MudTd>
-                <MudTd DataLabel="Precio">@context.Precio.ToString("C")</MudTd>
-                <MudTd DataLabel="Estado">
-                    <MudChip T="string" Color="@GetEstadoColor(context.Estado)" Size="Size.Small">@context.Estado</MudChip>
-                </MudTd>
-                <MudTd DataLabel="Acciones">
-                    @if (context.Estado == "Pendiente")
-                    {
-                        <MudButton Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined"
-                                   OnClick="@(() => CancelarTurno(context.IdTurno))">
-                            Cancelar
-                        </MudButton>
-                    }
-                </MudTd>
-            </RowTemplate>
-        </MudTable>
+        <MudStack Spacing="3">
+            @foreach (var turno in turnos.OrderByDescending(t => t.Fecha))
+            {
+                <MudCard Elevation="2" Style="border-radius: 12px; border-left: 5px solid var(--mud-palette-secondary);">
+                    <MudCardContent Class="pa-3">
+                        <div class="d-flex justify-space-between align-start mb-1">
+                            <MudText Typo="Typo.subtitle1" Class="fw-bold">@turno.Servicio</MudText>
+                            <MudChip T="string" Color="@GetEstadoColor(turno.Estado)" Size="Size.Small" Class="mt-0">@turno.Estado</MudChip>
+                        </div>
+
+                        <div class="d-flex align-center mb-1">
+                            <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small" Class="mr-1 text-muted" />
+                            <MudText Typo="Typo.body2" Class="text-muted mr-3">@turno.Fecha.ToString("dd/MM/yyyy")</MudText>
+
+                            <MudIcon Icon="@Icons.Material.Filled.AccessTime" Size="Size.Small" Class="mr-1 text-muted" />
+                            <MudText Typo="Typo.body2" Class="text-muted">@turno.HoraInicio.ToString(@"hh\:mm")</MudText>
+                        </div>
+
+                        <div class="d-flex justify-space-between align-center mt-2">
+                            <MudText Typo="Typo.body2" Class="fw-bold" Style="color: var(--mud-palette-primary);">
+                                @turno.Precio.ToString("C")
+                            </MudText>
+
+                            @if (turno.Estado == "Pendiente")
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="@(() => CancelarTurno(turno.IdTurno))">
+                                    Cancelar
+                                </MudButton>
+                            }
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            }
+        </MudStack>
     }
 </MudContainer>
 
 @code {
-    private List<TurnoResponseDTO> turnos;
+    private List<TurnoResponseDTO>? turnos;
 
     protected override async Task OnInitializedAsync()
     {

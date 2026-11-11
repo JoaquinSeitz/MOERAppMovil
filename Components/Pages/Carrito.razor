@@ -9,7 +9,7 @@
 @implements IDisposable
 @attribute [Authorize(Roles = "Cliente")]
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-5 pb-8">
+<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mt-5 pb-16">
     <div class="d-flex align-center mb-6">
         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Color="Color.Primary" OnClick="VolverAtras" Class="mr-2" />
         <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-family: 'Georgia', serif;">Mi Carrito</MudText>
@@ -17,11 +17,38 @@
 
     @if (!CarritoSvc.Items.Any())
     {
-        <MudPaper Padding="Padding.All" Class="pa-8 d-flex flex-column align-center" Elevation="0" Style="background-color: transparent;">
+        <MudPaper Padding="Padding.All" Class="pa-6 mb-6 d-flex flex-column align-center" Elevation="0" Style="background-color: transparent;">
             <MudIcon Icon="@Icons.Material.Filled.RemoveShoppingCart" Color="Color.Default" Style="font-size: 80px; opacity: 0.5;" Class="mb-4" />
             <MudText Typo="Typo.h6" Align="Align.Center" Color="Color.Default">Tu carrito está vacío</MudText>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-6 rounded-pill" Href="/productos">Ir a la Tienda</MudButton>
         </MudPaper>
+
+        @* SECCIÓN DE PEDIDOS RECIENTES *@
+        @if (_cargandoPedidos)
+        {
+            <div class="d-flex justify-center my-4">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (_ultimosPedidos != null && _ultimosPedidos.Any())
+        {
+            <MudText Typo="Typo.subtitle1" Class="fw-bold mb-3 mt-4" Style="color: var(--mud-palette-primary);">Pedidos Recientes</MudText>
+            <MudStack Spacing="3">
+                @foreach (var pedido in _ultimosPedidos.Take(3))
+                {
+                    <MudCard Elevation="1" Style="border-radius: 12px; border-left: 4px solid var(--mud-palette-secondary);">
+                        <MudCardContent Class="pa-3">
+                            <div class="d-flex justify-space-between align-center mb-1">
+                                <MudText Typo="Typo.body2" Class="fw-bold">Pedido #@pedido.IdPedido</MudText>
+                                <MudChip T="string" Color="@GetEstadoColor(pedido.Estado)" Size="Size.Small" Class="mt-0">@pedido.Estado</MudChip>
+                            </div>
+                            <MudText Typo="Typo.caption" Class="text-muted d-block mb-1">@pedido.Fecha.ToString("dd/MM/yyyy")</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Primary" Class="fw-bold">@pedido.Total.ToString("C")</MudText>
+                        </MudCardContent>
+                    </MudCard>
+                }
+            </MudStack>
+        }
     }
     else
     {
@@ -61,7 +88,7 @@
             </div>
 
             <MudText Typo="Typo.caption" Color="Color.Default" Class="d-block mb-4 text-center">
-                * El pago y retiro se realizan en el local.
+                - El pago y retiro se realizan en el local.
             </MudText>
 
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true"
@@ -82,15 +109,44 @@
 
 @code {
     private bool isSubmitting = false;
+    private List<PedidoResponseDTO> _ultimosPedidos;
+    private bool _cargandoPedidos = false;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         CarritoSvc.OnChange += StateHasChanged;
+
+        // Si el carrito está vacío al entrar, cargamos el historial
+        if (!CarritoSvc.Items.Any())
+        {
+            await CargarHistorial();
+        }
     }
 
     public void Dispose()
     {
         CarritoSvc.OnChange -= StateHasChanged;
+    }
+
+    private async Task CargarHistorial()
+    {
+        _cargandoPedidos = true;
+        try
+        {
+            // Traemos los pedidos usando el método que ya existía en tu PedidoService
+            var todosLosPedidos = await PedidoService.GetMisPedidos();
+            // Los ordenamos por fecha descendente
+            _ultimosPedidos = todosLosPedidos.OrderByDescending(p => p.Fecha).ToList();
+        }
+        catch
+        {
+            // Si falla silenciosamente no pasa nada, simplemente no se muestra el historial
+        }
+        finally
+        {
+            _cargandoPedidos = false;
+            StateHasChanged();
+        }
     }
 
     private void VolverAtras()
@@ -111,7 +167,7 @@
             {
                 Snackbar.Add("¡Pedido generado con éxito! Retíralo en el local.", Severity.Success);
                 CarritoSvc.VaciarCarrito();
-                // Eliminamos la redirección a la ruta inexistente de pedidos
+                await CargarHistorial(); // Refrescamos el historial para que aparezca el nuevo pedido
             }
             else
             {
@@ -128,7 +184,7 @@
                 Snackbar.Add(mensajeError, Severity.Error);
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             Snackbar.Add("Falla de conexión al procesar el pedido.", Severity.Error);
         }
@@ -137,6 +193,15 @@
             isSubmitting = false;
         }
     }
+
+    private Color GetEstadoColor(string estado) => estado switch
+    {
+        "Pendiente" => Color.Warning,
+        "Entregado" => Color.Success,
+        "Cancelado" => Color.Error,
+        "Listo para retiro" => Color.Info,
+        _ => Color.Default
+    };
 
     private class ErrorResponse { public string Mensaje { get; set; } }
 }

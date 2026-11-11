@@ -7,10 +7,9 @@
 @inject CatalogoService CatalogoService
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
-@inject AuthenticationStateProvider AuthStateProvider
 @attribute [Authorize(Roles = "Cliente")]
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="mt-4 pb-8">
+<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mt-4 pb-8">
     <MudPaper Padding="Padding.All" Class="pa-6" Elevation="4" Style="border-radius: 15px;">
         <div class="d-flex align-center mb-4">
             <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Color="Color.Primary" OnClick="VolverAtras" Class="mr-2" />
@@ -79,19 +78,11 @@
     private bool _enviandoReserva = false;
     private DateTime? _fechaSeleccionada;
     private TimeSpan? _horaSeleccionada;
-    private int _idCliente;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var idClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier);
-            if (idClaim != null && int.TryParse(idClaim.Value, out int id))
-            {
-                _idCliente = id;
-            }
-
             _servicios = await CatalogoService.GetServiciosAsync();
         }
         catch
@@ -119,7 +110,7 @@
 
         _enviandoReserva = true;
 
-        //_turnoDTO.IdCliente = _idCliente;
+        // Asignamos solo Fecha y Hora (El IdCliente lo inyecta el backend desde el token)
         _turnoDTO.Fecha = _fechaSeleccionada.Value;
         _turnoDTO.HoraInicio = _horaSeleccionada.Value;
 

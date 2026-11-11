@@ -1,41 +1,101 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Navigation
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
-    <MudCard Elevation="4" Class="pa-6 rounded-lg border-t-4" Style="border-top-color: var(--mud-palette-secondary);">
-        <MudCardHeader Class="d-flex justify-center pb-0">
-            <MudIcon Icon="@Icons.Material.Filled.Inventory" Style="font-size: 4rem; color: var(--mud-palette-primary);" />
-        </MudCardHeader>
-        <MudCardContent>
-            <MudText Typo="Typo.h5" Align="Align.Center" Color="Color.Primary" Class="fw-bold mb-2">
-                Gestión de Stock TP6
-            </MudText>
-            <MudText Typo="Typo.body2" Align="Align.Center" Class="mud-text-secondary mb-4">
-                Módulo Administrativo y Catálogo Móvil
-            </MudText>
+<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="pa-4 pb-16">
 
-            <MudDivider Class="my-4" />
+    @* --- VISTA EXCLUSIVA PARA EL ADMINISTRADOR --- *@
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <MudText Typo="Typo.h5" Class="fw-bold mb-4" Style="color: var(--mud-palette-primary);">Panel de Administración</MudText>
 
-            <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
-                Bienvenido al sistema. Utilizá la barra de navegación inferior para acceder a las distintas herramientas según tu rol.
-            </MudText>
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-6" Style="border-color: var(--mud-palette-primary);">
+                Estás conectado como <b>Administrador</b>. Seleccioná un módulo para gestionar.
+            </MudAlert>
 
-            <AuthorizeView Roles="Admin">
+            <MudGrid>
+                <MudItem xs="6">
+                    <MudPaper Class="pa-4 d-flex flex-column align-center justify-center cursor-pointer" Elevation="2" Style="height: 120px; border-radius: 12px;" @onclick="@(() => Navigation.NavigateTo("/admin/agenda"))">
+                        <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Large" Color="Color.Primary" Class="mb-2" />
+                        <MudText Typo="Typo.body2" Align="Align.Center" Class="fw-bold">Agenda</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudPaper Class="pa-4 d-flex flex-column align-center justify-center cursor-pointer" Elevation="2" Style="height: 120px; border-radius: 12px;" @onclick="@(() => Navigation.NavigateTo("/admin/pedidos"))">
+                        <MudIcon Icon="@Icons.Material.Filled.LocalMall" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+                        <MudText Typo="Typo.body2" Align="Align.Center" Class="fw-bold">Pedidos</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudPaper Class="pa-4 d-flex flex-column align-center justify-center cursor-pointer" Elevation="2" Style="height: 120px; border-radius: 12px;" @onclick="@(() => Navigation.NavigateTo("/productos"))">
+                        <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Large" Color="Color.Primary" Class="mb-2" />
+                        <MudText Typo="Typo.body2" Align="Align.Center" Class="fw-bold">Productos</MudText>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudPaper Class="pa-4 d-flex flex-column align-center justify-center cursor-pointer" Elevation="2" Style="height: 120px; border-radius: 12px;" @onclick="@(() => Navigation.NavigateTo("/tratamientos"))">
+                        <MudIcon Icon="@Icons.Material.Filled.Spa" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+                        <MudText Typo="Typo.body2" Align="Align.Center" Class="fw-bold">Servicios</MudText>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </Authorized>
+    </AuthorizeView>
+
+    @* --- VISTA PARA CLIENTES Y VISITANTES --- *@
+    <AuthorizeView Roles="Admin">
+        <NotAuthorized>
+            <MudText Typo="Typo.h5" Class="fw-bold mb-2" Style="color: var(--mud-palette-primary);">Bienvenido a MOER</MudText>
+
+            <AuthorizeView Roles="Cliente" Context="ClienteContext">
                 <Authorized>
-                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4" Style="border-color: var(--mud-palette-primary);">
-                        Estás conectado como <b>Administrador</b>. Tenés acceso a registrar Ingresos y descargar Reportes PDF.
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="mb-4" Style="border-color: var(--mud-palette-secondary);">
+                        Estás conectado como <b>Cliente</b>. Ya podés agendar turnos y armar pedidos.
                     </MudAlert>
                 </Authorized>
             </AuthorizeView>
 
-            <AuthorizeView Roles="Cliente">
-                <Authorized>
-                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="mt-4" Style="border-color: var(--mud-palette-secondary);">
-                        Estás conectado como <b>Cliente</b>. Podés explorar el catálogo y armar tu carrito de compras.
-                    </MudAlert>
-                </Authorized>
-            </AuthorizeView>
+            <MudText Typo="Typo.body2" Class="mb-6 text-muted">
+                Tu espacio dedicado al bienestar, relax y belleza. Descubrí nuestros tratamientos diseñados exclusivamente para vos.
+            </MudText>
 
-        </MudCardContent>
-    </MudCard>
+            @* CARRUSEL *@
+            <MudCarousel Class="mud-width-full rounded-lg mb-6" Style="height:200px;" ShowArrows="true" ShowBullets="true" AutoCycle="true" TData="object">
+                <MudCarouselItem Transition="Transition.Slide">
+                    <div class="d-flex justify-center align-center h-100" style="background-color: #F5E6E0;">
+                        <MudText Typo="Typo.h6" Style="color: var(--mud-palette-primary);">Limpieza Facial</MudText>
+                    </div>
+                </MudCarouselItem>
+                <MudCarouselItem Transition="Transition.Slide">
+                    <div class="d-flex justify-center align-center h-100" style="background-color: var(--mud-palette-secondary);">
+                        <MudText Typo="Typo.h6" Style="color: #FFFFFF;">Masajes Relajantes</MudText>
+                    </div>
+                </MudCarouselItem>
+            </MudCarousel>
+
+            @* ACCESO A SERVICIOS *@
+            <MudPaper Class="pa-4 mb-6" Elevation="0" Style="background-color: rgba(178, 201, 171, 0.15); border-radius: 12px; border: 1px solid var(--mud-palette-secondary);">
+                <div class="d-flex align-center justify-space-between">
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Class="fw-bold">Catálogo de Servicios</MudText>
+                        <MudText Typo="Typo.caption">Explorá los tratamientos.</MudText>
+                    </div>
+                    <MudButton Href="/tratamientos" Variant="Variant.Filled" DisableElevation="true" Style="background-color: var(--mud-palette-secondary); color: white; border-radius: 8px;">
+                        Ver Todo
+                    </MudButton>
+                </div>
+            </MudPaper>
+
+            @* SOBRE NOSOTROS *@
+            <MudCard Elevation="2" Style="border-radius: 15px; overflow: hidden;" Class="mb-4">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" Class="fw-bold mb-2">Sobre Nosotros</MudText>
+                    <MudText Typo="Typo.body2">
+                        En MOER Estética nos enfocamos en brindar una experiencia completa para desconectar de la rutina. Contamos con profesionales capacitados y productos de primera línea.
+                    </MudText>
+                </MudCardContent>
+            </MudCard>
+        </NotAuthorized>
+    </AuthorizeView>
+
 </MudContainer>
